@@ -1,4 +1,5 @@
-/*HTML2Entities v1.2
+/*
+* HTML2Entities v1.3
 * Copyright (C) Simon Raichl 2018
 * MIT License
 * Use this as you want, share it as you want, do basically whatever you want with this :)
@@ -6,6 +7,7 @@
 
 package com.VelociraptorCZE.HTML2Entities
 
+import android.annotation.SuppressLint
 import android.content.ClipboardManager
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
@@ -22,16 +24,17 @@ import org.jsoup.nodes.Document
 
 open class Main : AppCompatActivity() {
 
-    val chars = arrayOf("<", ">", "&", '"', "'", "©", "®", "€", "¢", "£", "¥", "§", "|", "$", "#", "@")
-    val entities = arrayOf("&lt;", "&gt;", "&amp;", "&quot;", "&apos;", "&copy;", "&reg;", "&euro;", "&cent;", "&pound;", "&yen;", "&sect;", "&verbar;", "&dollar;", "&num;", "&commat;")
+    private val chars = arrayOf("<", ">", "&", '"', "'", "©", "®", "€", "¢", "£", "¥", "§", "|", "$", "#", "@")
+    private val entities = arrayOf("&lt;", "&gt;", "&amp;", "&quot;", "&apos;", "&copy;", "&reg;", "&euro;", "&cent;", "&pound;", "&yen;", "&sect;", "&verbar;", "&dollar;", "&num;", "&commat;")
     var webpage = ""
 
+    @SuppressLint("ClickableViewAccessibility")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        findViewById<Button>(R.id.convertBtn).setOnClickListener{
-            convert()
+        findViewById<Button>(R.id.clearBtn).setOnClickListener{
+            getInput().setText("")
         }
         findViewById<Button>(R.id.convertPageBtn).setOnClickListener{
             getPageContents()
@@ -39,18 +42,22 @@ open class Main : AppCompatActivity() {
         findViewById<Button>(R.id.copyBtn).setOnClickListener{
             copyAll()
         }
+
+        OnChangeTextListener.Add(getInput(), ::convert)
+
         getOutput().isFocusable = false
+        getOutput().isLongClickable = false
     }
 
     fun convert(){
         val inputField = getInput()
         val outputField = getOutput()
-        var content = inputField.text.split("")
-        var output = ""; var numOfChars = chars.size-1; var numOfInput = content.size-1
-        for (i in 0..numOfInput) {
+        val content = inputField.text.split("")
+        var output = ""
+        for (i in 0..(content.size-1)) {
             var char = content[i]
-            for (a in 0..numOfChars) {
-                if (chars[a] == char) {
+            for (a in 0..(chars.size-1)) {
+                if (chars[a].toString() == char) {
                     char = entities[a]
                 }
             }
@@ -59,7 +66,7 @@ open class Main : AppCompatActivity() {
         outputField.setText(output)
     }
 
-    fun copyAll(){
+    private fun copyAll(){
         val outputField = getOutput()
         val clip = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         val content = ClipData.newPlainText("copy", outputField.text)
@@ -67,7 +74,7 @@ open class Main : AppCompatActivity() {
         toast("Copied to clipboard")
     }
 
-    fun getPageContents(){
+    private fun getPageContents(){
         class DownloadPage : AsyncTask<Void, Void, String>() {
             override fun doInBackground(vararg params: Void): String {
                 val content: Document
@@ -89,21 +96,20 @@ open class Main : AppCompatActivity() {
                 }
             }
         }
-
         with(AlertDialog.Builder(this)){
             setTitle("Import web page and convert")
             setMessage("Type the web page url, if you don't enter the protocol, it will be automatically assigned to your URL https:// prefix")
-            val URLInput : EditText ?
-            URLInput = EditText(context)
-            URLInput.hint = "URL"
-            URLInput.inputType = InputType.TYPE_CLASS_TEXT
-            setView(URLInput)
+            val urlInput : EditText ?
+            urlInput = EditText(context)
+            urlInput.hint = "URL"
+            urlInput.inputType = InputType.TYPE_CLASS_TEXT
+            setView(urlInput)
 
             val posBtn = setPositiveButton("Download and convert") {
                 popup, _ ->
-                webpage = URLInput.text.toString()
+                webpage = urlInput.text.toString()
                 if (!webpage.contains("https://") && !webpage.contains("http://")){
-                    webpage = "https://" + webpage;
+                    webpage = "https://$webpage"
                 }
                 popup.dismiss()
             }
@@ -117,13 +123,11 @@ open class Main : AppCompatActivity() {
         Toast.makeText(this, param, Toast.LENGTH_LONG).show()
     }
 
-    fun getInput(): EditText{
-        val input = findViewById<EditText>(R.id.inputField)
-        return input
+    private fun getInput(): EditText{
+        val input = findViewById<EditText>(R.id.inputField); return input
     }
 
-    fun getOutput(): EditText{
-        val output = findViewById<EditText>(R.id.outputField)
-        return output
+    private fun getOutput(): EditText{
+        val output = findViewById<EditText>(R.id.outputField); return output
     }
 }
